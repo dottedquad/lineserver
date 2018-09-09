@@ -42,12 +42,12 @@ func main() {
 	tmpfile, err := ioutil.TempFile("", "lineserver")
 	if err != nil {
 		fmt.Errorf("Could not open temp file")
-		//log.Fatal(err)
+		return
 	}
 
-	defer os.Remove(tmpfile.Name()) // clean up
+	defer os.Remove(tmpfile.Name()) // clean up the temp file
 
-	commandDispatch["GET"] = &GetHandler{NewIndexedLineGetter(file, tmpfile, 4)}
+	commandDispatch["GET"] = &GetHandler{NewIndexedLineWriter(file, tmpfile, 4)}
 	commandDispatch["QUIT"] = &QuitHandler{}
 	commandDispatch["SHUTDOWN"] = &ShutdownHandler{}
 
@@ -83,11 +83,11 @@ func handleRequest(conn net.Conn, commandDispatch map[string]Handler) Dispositio
 		}
 		if len(commandargs) > 0 {
 			disposition := Continue
-			msg := ""
 			if val, ok := commandDispatch[commandargs[0]]; ok {
-				msg, disposition = val.Handle(commandargs)
+				disposition = val.Handle(commandargs, conn)
+			} else {
+				disposition = (&UnknownHandler{}).Handle(commandargs, conn)
 			}
-			fmt.Printf(msg)
 
 			switch disposition {
 			case Continue:

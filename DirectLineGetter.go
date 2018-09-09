@@ -10,10 +10,10 @@ type DirectLineGetter struct {
 	reader io.ReadSeeker
 }
 
-func (dlg *DirectLineGetter) GetLine(lineNum int64) (string, error) {
+func (dlg *DirectLineGetter) GetLine(lineNum int64, writer io.Writer) error {
 
 	if lineNum <= 0 {
-		return "", errors.New("Invalid Line Number")
+		return errors.New("Invalid Line Number")
 	}
 	dlg.reader.Seek(0, io.SeekStart)
 	scanner := bufio.NewScanner(dlg.reader)
@@ -21,8 +21,9 @@ func (dlg *DirectLineGetter) GetLine(lineNum int64) (string, error) {
 	for scanner.Scan() {
 		curLineNum++
 		if lineNum == curLineNum {
-			return scanner.Text(), scanner.Err()
+			writer.Write([]byte(scanner.Text()))
+			return scanner.Err()
 		}
 	}
-	return "", errors.New("Past end of file")
+	return errors.New("Past end of file")
 }

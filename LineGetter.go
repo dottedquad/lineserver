@@ -1,5 +1,7 @@
 package main
 
-type LineGetter interface {
-	GetLine(lineNum int64) (string, error)
+import "io"
+
+type LineWriter interface {
+	WriteLine(lineNum int64, writer io.Writer) error
 }

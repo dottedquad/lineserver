@@ -1,24 +1,25 @@
 package main
 
-import "strconv"
+import (
+	"io"
+	"strconv"
+)
 
 type GetHandler struct {
-	lineGetter LineGetter
+	lineWriter LineWriter
 }
 
-func (gc *GetHandler) Handle(args []string) (string, Disposition) {
+func (gc *GetHandler) Handle(args []string, writer io.Writer) Disposition {
 
 	if len(args) != 2 {
-		return "ERR", Continue
+		writer.Write([]byte("ERR\r\n"))
+		return Continue
 	}
 	lineNum, err := strconv.ParseInt(args[1], 10, 64)
 	if err != nil {
-		return "ERR", Continue
+		writer.Write([]byte("ERR\r\n"))
+		return Continue
 	}
-	line, err := gc.lineGetter.GetLine(lineNum)
-	if err == nil {
-		return line, Continue
-	} else {
-		return "ERR", Continue
-	}
+	gc.lineWriter.WriteLine(lineNum, writer)
+	return Continue
 }
