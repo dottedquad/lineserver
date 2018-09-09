@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -37,7 +38,16 @@ func main() {
 		fmt.Errorf("Could not open file")
 		return
 	}
-	commandDispatch["GET"] = &GetHandler{&DirectLineGetter{file}}
+
+	tmpfile, err := ioutil.TempFile("", "example")
+	if err != nil {
+		fmt.Errorf("Could not open temp file")
+		//log.Fatal(err)
+	}
+
+	defer os.Remove(tmpfile.Name()) // clean up
+
+	commandDispatch["GET"] = &GetHandler{NewIndexedLineGetter(file, tmpfile, 4)}
 	commandDispatch["QUIT"] = &QuitHandler{}
 	commandDispatch["SHUTDOWN"] = &ShutdownHandler{}
 

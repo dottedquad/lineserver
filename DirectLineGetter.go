@@ -15,7 +15,7 @@ func (dlg *DirectLineGetter) GetLine(lineNum int64) (string, error) {
 	if lineNum <= 0 {
 		return "", errors.New("Invalid Line Number")
 	}
-	dlg.reader.Seek(0, 0)
+	dlg.reader.Seek(0, io.SeekStart)
 	scanner := bufio.NewScanner(dlg.reader)
 	curLineNum := int64(0)
 	for scanner.Scan() {
