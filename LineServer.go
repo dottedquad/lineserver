@@ -39,7 +39,7 @@ func main() {
 		return
 	}
 
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := ioutil.TempFile("", "lineserver")
 	if err != nil {
 		fmt.Errorf("Could not open temp file")
 		//log.Fatal(err)
