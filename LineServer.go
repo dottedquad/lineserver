@@ -9,49 +9,10 @@ import (
 )
 
 const (
-	CONN_HOST = "localhost"
-	CONN_PORT = "3333"
-	CONN_TYPE = "tcp"
+	ConnHost = "localhost"
+	ConnPort = "3333"
+	ConnType = "tcp"
 )
-
-// Disposition Once a command completes, this is what we should do about it
-type Disposition int
-
-const (
-	// Continue receiving new commands
-	Continue Disposition = 0
-	// Return and end current connection
-	Return Disposition = 1
-	// Exit the server completely
-	Exit Disposition = 2
-)
-
-// Command Is an interface to provide implementation for different line-based TCP commands.
-type Command interface {
-	Handle(args []string) Disposition
-}
-
-type GetCommand struct {
-}
-
-func (gc *GetCommand) Handle(args []string) Disposition {
-	return Continue
-}
-
-type QuitCommand struct {
-}
-
-func (qc *QuitCommand) Handle(args []string) Disposition {
-
-	return Return
-}
-
-type ShutdownCommand struct {
-}
-
-func (ec *ShutdownCommand) Handle(args []string) Disposition {
-	return Exit
-}
 
 func main() {
 
@@ -59,16 +20,26 @@ func main() {
 	fmt.Println(args)
 
 	// Listen for incoming connections.
-	listener, err := net.Listen("tcp", CONN_HOST+":"+CONN_PORT)
+	listener, err := net.Listen("tcp", ConnHost+":"+ConnPort)
 	if err != nil {
 		fmt.Println("Error listening:", err.Error())
 		os.Exit(1)
 	}
 	// Close the listener when the application closes.
 	defer listener.Close()
-	fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
+	fmt.Println("Listening on " + ConnHost + ":" + ConnPort)
 
-	commandDispatch := make(map[string]*Command)
+	commandDispatch := make(map[string]Handler)
+
+	// Set up the dependencies
+	file, err := os.Open("john.txt")
+	if err != nil {
+		fmt.Errorf("Could not open file")
+		return
+	}
+	commandDispatch["GET"] = &GetHandler{&DirectLineGetter{file}}
+	commandDispatch["QUIT"] = &QuitHandler{}
+	commandDispatch["SHUTDOWN"] = &ShutdownHandler{}
 
 	for {
 		// Listen for an incoming connection.
@@ -83,7 +54,7 @@ func main() {
 }
 
 // Handles incoming requests.
-func handleRequest(conn net.Conn, commandDispatch map[string]*Command) Disposition {
+func handleRequest(conn net.Conn, commandDispatch map[string]Handler) Disposition {
 
 	reader := bufio.NewReader(conn)
 
@@ -98,12 +69,15 @@ func handleRequest(conn net.Conn, commandDispatch map[string]*Command) Dispositi
 
 		if err != nil {
 			fmt.Println("Error reading:", err.Error())
+			return Return
 		}
 		if len(commandargs) > 0 {
 			disposition := Continue
+			msg := ""
 			if val, ok := commandDispatch[commandargs[0]]; ok {
-				disposition = val.Handle(commandargs)
+				msg, disposition = val.Handle(commandargs)
 			}
+			fmt.Printf(msg)
 
 			switch disposition {
 			case Continue:
@@ -111,16 +85,11 @@ func handleRequest(conn net.Conn, commandDispatch map[string]*Command) Dispositi
 				break
 			case Return:
 				// Return
-				return
-				break
+				return disposition
 			case Exit:
 				// TODO Do something special
 				return disposition
-				break
 			}
 		}
 	}
-
-	// Send a response back to person contacting us.
-	conn.Write([]byte("Message received."))
 }
