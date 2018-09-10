@@ -5,10 +5,12 @@ import (
 	"strconv"
 )
 
+// GetHandler Handle the GET command
 type GetHandler struct {
 	lineWriter LineWriter
 }
 
+// Handle the GET command
 func (gc *GetHandler) Handle(args []string, writer io.Writer) Disposition {
 
 	if len(args) != 2 {
